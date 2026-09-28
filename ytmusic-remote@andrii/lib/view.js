@@ -155,24 +155,35 @@ export class PlayerView {
         return b;
     }
 
-    // Load an image URL into an St.Icon once it is on disk.
-    _loadImage(icon, url) {
-        icon._url = url;
+    // Load an image URL into a thumb once it is on disk. The picture is the
+    // thumb's background, scaled to cover the square and cropped to its middle,
+    // so a 16:9 video frame keeps its proportions instead of being squeezed.
+    _loadImage(thumb, url) {
+        thumb._url = url;
+        thumb.style = thumb._size;
+        thumb.child.show();
         if (!url)
             return;
         this._net.image(url).then(file => {
-            if (this._destroyed || !file || icon._url !== url || icon._gone)
+            if (this._destroyed || !file || thumb._url !== url || thumb._gone)
                 return;
-            icon.gicon = new Gio.FileIcon({file});
+            thumb.style = `${thumb._size} background-image: url("${file.get_uri()}");`;
+            thumb.child.hide();
         });
     }
 
+    // A square of `size` px: the placeholder note until the picture arrives.
     _thumb(size, style) {
-        const icon = new St.Icon({icon_size: size, style_class: style, gicon: this.icon('ytmr-cover-symbolic')});
-        icon.connect('destroy', () => {
-            icon._gone = true;
+        // Sized in CSS so it follows the display scale like the icon does.
+        const thumb = new St.Bin({
+            style_class: style, style: `width: ${size}px; height: ${size}px;`,
+            child: new St.Icon({icon_size: size, gicon: this.icon('ytmr-cover-symbolic')}),
         });
-        return icon;
+        thumb._size = thumb.style;
+        thumb.connect('destroy', () => {
+            thumb._gone = true;
+        });
+        return thumb;
     }
 
     // ------------------------------------------------------------ now playing
@@ -288,7 +299,6 @@ export class PlayerView {
         this._state.text = status;
         this._state.visible = status !== '';
         if (this._cover._url !== (song?.art || '')) {
-            this._cover.gicon = this.icon('ytmr-cover-symbolic');
             this._loadImage(this._cover, song?.art || '');
         }
         this._cover.opacity = live ? 255 : 150;

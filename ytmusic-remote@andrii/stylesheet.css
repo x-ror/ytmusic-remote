@@ -28,6 +28,7 @@
 }
 .ytmr-cover {
   border-radius: 10px;
+  background-size: cover;
 }
 .ytmr-info {
   spacing: 2px;
@@ -156,6 +157,7 @@
 }
 .ytmr-thumb {
   border-radius: 6px;
+  background-size: cover;
 }
 .ytmr-thumb-round {
   border-radius: 99px;

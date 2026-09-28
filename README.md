@@ -8,7 +8,7 @@ A top-bar remote for the [YouTube Music desktop app](https://github.com/pear-dev
 - **Now playing** in the top bar, and a popup with cover, seek bar, play/pause, next/previous, shuffle, repeat, like/dislike and volume.
 - **Up next, Home, Search, Library, Queue** right in the popup: search with filters (songs, albums, artists, playlists), open albums, playlists and artists, play them or add songs to the queue, jump to or remove queue rows. Long lists load as you scroll.
 - **Timed lyrics** from [LRCLIB](https://lrclib.net). The sung line lights up and stays in view, and you can click a line to jump there. When LRCLIB has nothing, YouTube Music's own lyrics are shown.
-- **The app stays out of the way.** It starts minimized when you press play or open a tab, and quits after a pause (10 minutes by default). Play resumes the last song at the second you left it.
+- **The app stays out of the way.** It starts in the background with no window (so it stays out of the dock) when you press play or open a tab, and quits after a pause (10 minutes by default). Play resumes the last song at the second you left it.
 - Middle-click the remote to play or pause; scroll on it to change the volume. Click the cover to show or hide the app window.
 
 This is a GNOME port of [omarchy-youtube-music](https://github.com/nicolasfalesy/omarchy-youtube-music) by nicolasfalesy, which does the same for the Omarchy (Hyprland) bar.

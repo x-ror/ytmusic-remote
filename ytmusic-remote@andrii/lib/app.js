@@ -209,9 +209,12 @@ export class AppController extends Signals.EventEmitter {
         if (custom)
             launcher.setenv('YTMR_APP', custom.replace(/^~/, GLib.get_home_dir()), true);
         const bridge = GLib.build_filenamev([this._ext.path, 'tools', 'cdp-bridge']);
+        // --hidden: the app starts with no window, so it stays out of the
+        // dock. An app too old for that (or on its very first start) still
+        // opens one, which _onWindowCreated minimizes.
         if (background)
             this._hideNextWindow = GLib.get_monotonic_time() + 60 * 1e6;
-        const proc = launcher.spawnv(['python3', bridge]);
+        const proc = launcher.spawnv(['python3', bridge, ...background ? ['--hidden'] : []]);
         // Reaped when it exits, so it never lingers as a zombie.
         proc.wait_async(null).catch(() => {});
     }
@@ -470,7 +473,12 @@ export class AppController extends Signals.EventEmitter {
         const wins = this._appWindows();
         if (!wins.length) {
             this._hideNextWindow = 0;
-            await this.ensureRunning({background: false});
+            // Running with no window (started hidden): the bridge brings the
+            // window up through the running app.
+            if (this.running || this._cdp.socketExists())
+                this._spawnBridge(false);
+            else
+                await this.ensureRunning({background: false});
             return 'shown';
         }
         const w = wins[0];
