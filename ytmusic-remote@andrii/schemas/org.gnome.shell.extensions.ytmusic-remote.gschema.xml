@@ -15,6 +15,10 @@
       <default>true</default>
       <summary>Show the song in the top bar</summary>
     </key>
+    <key name="scroll-title" type="b">
+      <default>true</default>
+      <summary>Scroll a song title too long for the top bar while it plays</summary>
+    </key>
     <key name="max-label-width" type="i">
       <range min="60" max="600"/>
       <default>220</default>

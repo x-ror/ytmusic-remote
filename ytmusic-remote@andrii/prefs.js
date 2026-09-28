@@ -81,9 +81,14 @@ export default class YouTubeMusicRemotePrefs extends ExtensionPreferences {
         settings.bind('show-title', showRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         barGroup.add(showRow);
 
+        const scrollRow = new Adw.SwitchRow({title: 'Scroll long titles',
+            subtitle: 'A title wider than the limit below scrolls while the song plays.'});
+        settings.bind('scroll-title', scrollRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        barGroup.add(scrollRow);
+
         const widthRow = new Adw.SpinRow({
             title: 'Widest title',
-            subtitle: 'In pixels; longer titles end in “…”.',
+            subtitle: 'In pixels; longer titles scroll, or end in “…” when scrolling is off.',
             adjustment: new Gtk.Adjustment({lower: 60, upper: 600, step_increment: 10, page_increment: 50}),
         });
         settings.bind('max-label-width', widthRow, 'value', Gio.SettingsBindFlags.DEFAULT);

@@ -2,7 +2,7 @@
    emphasis are set here, colours come from the theme (light and dark). */
 
 .ytmr-indicator-label {
-  padding-left: 6px;
+  margin-left: 6px;  /* not padding: the width set in code is the clip */
 }
 
 .ytmr-menu-item {
