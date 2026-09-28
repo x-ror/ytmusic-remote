@@ -1,0 +1,1 @@
+{"uuid": "ytmr-test@dev", "name": "ytmr test helper", "description": "unsafe mode for Eval in the nested test shell", "shell-version": ["45","46","47","48","49","50"]}

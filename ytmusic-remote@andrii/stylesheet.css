@@ -1,0 +1,220 @@
+/* YouTube Music Remote — follows the shell theme; only sizes, spacing and
+   emphasis are set here, colours come from the theme (light and dark). */
+
+.ytmr-indicator-label {
+  padding-left: 6px;
+}
+
+.ytmr-menu-item {
+  padding: 6px 10px;
+}
+.ytmr-menu-item:hover,
+.ytmr-menu-item:focus {
+  background-color: transparent;
+}
+
+.ytmr-panel {
+  width: 440px;
+  spacing: 6px;
+}
+
+/* now playing */
+.ytmr-now {
+  spacing: 12px;
+}
+.ytmr-cover-button {
+  border-radius: 10px;
+  padding: 0;
+}
+.ytmr-cover {
+  border-radius: 10px;
+}
+.ytmr-info {
+  spacing: 2px;
+}
+.ytmr-title {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+.ytmr-state {
+  font-size: 0.85em;
+}
+
+.ytmr-seek {
+  margin-top: 6px;
+}
+.ytmr-times {
+  padding: 0 2px;
+}
+.ytmr-time {
+  font-size: 0.8em;
+  font-feature-settings: "tnum";
+}
+
+.ytmr-controls {
+  spacing: 6px;
+}
+.ytmr-icon-button {
+  border-radius: 99px;
+  padding: 7px;
+}
+.ytmr-icon-button:hover,
+.ytmr-icon-button:focus {
+  background-color: rgba(127, 127, 127, 0.18);
+}
+.ytmr-icon-button:checked {
+  color: #78aeed;
+  color: -st-accent-color;
+}
+.ytmr-play {
+  padding: 10px;
+  background-color: rgba(127, 127, 127, 0.18);
+}
+.ytmr-play:hover {
+  background-color: rgba(127, 127, 127, 0.3);
+}
+
+.ytmr-volume {
+  spacing: 6px;
+  padding: 0 8px;
+}
+
+/* tabs */
+.ytmr-tabs {
+  spacing: 2px;
+  margin-top: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background-color: rgba(127, 127, 127, 0.12);
+}
+.ytmr-tab {
+  padding: 5px 4px;
+  border-radius: 8px;
+  font-size: 0.9em;
+}
+.ytmr-tab:hover {
+  background-color: rgba(127, 127, 127, 0.18);
+}
+.ytmr-tab:checked {
+  background-color: rgba(127, 127, 127, 0.32);
+  font-weight: bold;
+}
+
+.ytmr-nav {
+  spacing: 4px;
+}
+.ytmr-nav-title {
+  font-weight: bold;
+}
+
+.ytmr-search {
+  border-radius: 10px;
+}
+
+.ytmr-chips {
+  spacing: 4px;
+}
+.ytmr-chip {
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 0.85em;
+  background-color: rgba(127, 127, 127, 0.14);
+}
+.ytmr-chip:hover {
+  background-color: rgba(127, 127, 127, 0.24);
+}
+.ytmr-chip:checked {
+  background-color: #3584e4;
+  color: #ffffff;
+  background-color: -st-accent-color;
+  color: -st-accent-fg-color;
+}
+
+/* the list */
+.ytmr-scroll {
+  height: 330px;
+}
+.ytmr-list {
+  spacing: 1px;
+  padding-right: 6px;
+}
+.ytmr-section {
+  font-weight: bold;
+  font-size: 0.9em;
+  padding: 10px 6px 4px;
+}
+.ytmr-row {
+  spacing: 2px;
+}
+.ytmr-row-main {
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+.ytmr-row-main:hover,
+.ytmr-row-main:focus {
+  background-color: rgba(127, 127, 127, 0.16);
+}
+.ytmr-thumb {
+  border-radius: 6px;
+}
+.ytmr-thumb-round {
+  border-radius: 99px;
+}
+.ytmr-row-texts {
+  padding-left: 10px;
+  spacing: 1px;
+}
+.ytmr-row-title {
+  font-size: 0.95em;
+}
+.ytmr-current {
+  font-weight: bold;
+  color: #78aeed;
+  color: -st-accent-color;
+}
+.ytmr-row-sub {
+  font-size: 0.82em;
+}
+.ytmr-row-time {
+  font-size: 0.82em;
+  padding-left: 8px;
+  font-feature-settings: "tnum";
+}
+.ytmr-row-action {
+  padding: 6px;
+}
+.ytmr-more {
+  font-size: 0.85em;
+  padding: 2px 8px;
+}
+
+.ytmr-message {
+  padding: 30px 20px;
+  spacing: 12px;
+}
+.ytmr-message-text {
+  text-align: center;
+}
+
+/* lyrics */
+.ytmr-lyric {
+  padding: 5px 8px;
+  border-radius: 8px;
+}
+.ytmr-lyric-text {
+  font-size: 1.15em;
+  font-weight: bold;
+}
+.ytmr-lyric-plain {
+  padding: 8px;
+  font-size: 1.02em;
+}
+.ytmr-lyric-source {
+  font-size: 0.75em;
+  padding: 10px 8px;
+}
+
+.ytmr-foot {
+  font-size: 0.85em;
+  padding: 2px 6px;
+}

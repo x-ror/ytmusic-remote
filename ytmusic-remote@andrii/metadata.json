@@ -1,0 +1,16 @@
+{
+  "uuid": "ytmusic-remote@andrii",
+  "name": "YouTube Music Remote",
+  "description": "A panel remote for the YouTube Music desktop app (pear-desktop): now playing, controls, Up next, Home, Search, Library, Queue and timed lyrics. The app runs in the background only while it is needed. A GNOME port of omarchy-youtube-music.",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "settings-schema": "org.gnome.shell.extensions.ytmusic-remote",
+  "version": 1,
+  "version-name": "1.0.0"
+}

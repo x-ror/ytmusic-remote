@@ -1,0 +1,261 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>YouTube Music (mock)</title>
+<!-- A stand-in for the YouTube Music page inside pear-desktop, for testing
+     the extension without a network: the same element names, player methods,
+     queue store and response shapes that page.js reads. Fictional music. -->
+<body>
+<ytmusic-app></ytmusic-app>
+<div id="movie_player"></div>
+<video></video>
+<ytmusic-player-bar>
+  <button class="previous-button ytmusic-player-bar"></button>
+  <button class="next-button ytmusic-player-bar"></button>
+  <ytmusic-like-button-renderer id="like-button-renderer" like-status="INDIFFERENT">
+    <div id="button-shape-like"><button></button></div>
+    <div id="button-shape-dislike"><button></button></div>
+  </ytmusic-like-button-renderer>
+</ytmusic-player-bar>
+<div id="queue"></div>
+<script>
+(function () {
+  var IMG = location.origin + "/img/c";
+  var R = function (t) { return { runs: [{ text: t }] }; };
+  var thumb = function (i) { return { musicThumbnailRenderer: { thumbnail: { thumbnails: [{ url: IMG + (i % 24) + ".png", width: 120, height: 120 }] } } }; };
+  var ARTISTS = ["Nova Lane", "The Paper Kites Club", "Solenne", "Marek & the Tides", "Hollow Pines", "Ivy Carrow"];
+  var WORDS = ["Northern", "Glass", "Summer", "Quiet", "Electric", "Paper", "Golden", "Late", "Wild", "Silver", "Midnight", "Open"];
+  var NOUNS = ["Lights", "Rivers", "Houses", "Mornings", "Hearts", "Roads", "Skies", "Letters", "Fields", "Echoes"];
+  var SONGS = [];
+  for (var i = 0; i < 60; i++) {
+    var a = i % ARTISTS.length;
+    SONGS.push({ id: "vid" + String(i).padStart(4, "0"), title: WORDS[i % WORDS.length] + " " + NOUNS[(i * 7) % NOUNS.length],
+      artist: ARTISTS[a], album: ["Tidewater", "Low Sun", "Atlas", "Second Floor", "Blue Hour", "Kept"][a],
+      albumId: "MPREb_album" + a, dur: 150 + (i * 37) % 140, img: i % 24 });
+  }
+  var byId = function (id) { return SONGS.filter(function (s) { return s.id === id; })[0]; };
+  var fmt = function (s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  var songRow = function (s, playlistId, setId) {
+    return { musicResponsiveListItemRenderer: {
+      thumbnail: thumb(s.img),
+      flexColumns: [
+        { musicResponsiveListItemFlexColumnRenderer: { text: R(s.title) } },
+        { musicResponsiveListItemFlexColumnRenderer: { text: R(s.artist) } },
+        { musicResponsiveListItemFlexColumnRenderer: { text: R(s.album) } }],
+      fixedColumns: [{ musicResponsiveListItemFixedColumnRenderer: { text: R(fmt(s.dur)) } }],
+      playlistItemData: { videoId: s.id, playlistSetVideoId: setId || "" },
+      overlay: { musicItemThumbnailOverlayRenderer: { content: { musicPlayButtonRenderer: {
+        playNavigationEndpoint: { watchEndpoint: { videoId: s.id, playlistId: playlistId || "" } } } } } } } };
+  };
+  var tile = function (title, sub, img, browseId, playlistId) {
+    var t = { musicTwoRowItemRenderer: { title: R(title), subtitle: R(sub), thumbnailRenderer: thumb(img),
+      navigationEndpoint: { browseEndpoint: { browseId: browseId } } } };
+    if (playlistId) t.musicTwoRowItemRenderer.thumbnailOverlay = { musicItemThumbnailOverlayRenderer: { content: {
+      musicPlayButtonRenderer: { playNavigationEndpoint: { watchPlaylistEndpoint: { playlistId: playlistId } } } } } };
+    return t;
+  };
+  var carousel = function (title, items) {
+    return { musicCarouselShelfRenderer: { header: { musicCarouselShelfBasicHeaderRenderer: { title: R(title) } }, contents: items } };
+  };
+  var PLAYLISTS = [
+    { id: "PLfocus", title: "Deep Focus", songs: SONGS.slice(0, 40), img: 3 },
+    { id: "PLroad", title: "Road Trip", songs: SONGS.slice(20, 35), img: 8 },
+    { id: "LM", title: "Liked Music", songs: SONGS.filter(function (s, i) { return i % 3 === 0; }), img: 12 }
+  ];
+  var plById = function (id) { return PLAYLISTS.filter(function (p) { return p.id === id; })[0]; };
+  var listPage = function (title, sub, img, songs, playlistId) {
+    var first = songs.slice(0, 25), rest = songs.slice(25);
+    var rows = first.map(function (s, k) { return songRow(s, playlistId, playlistId + "_" + k); });
+    if (rest.length) rows.push({ continuationItemRenderer: { continuationEndpoint: { continuationCommand: { token: "more:" + playlistId } } } });
+    return { contents: { twoColumnBrowseResultsRenderer: {
+      tabs: [{ tabRenderer: { content: { sectionListRenderer: { contents: [{ musicResponsiveHeaderRenderer: {
+        title: R(title), subtitle: R(sub), thumbnail: thumb(img),
+        buttons: [{ musicPlayButtonRenderer: { playNavigationEndpoint: { watchPlaylistEndpoint: { playlistId: playlistId } } } }] } }] } } } }],
+      secondaryContents: { sectionListRenderer: { contents: [{ musicPlaylistShelfRenderer: { contents: rows } }] } } } } };
+  };
+  var single = function (shelves, cont) {
+    var sl = { contents: shelves };
+    if (cont) sl.continuations = [{ nextContinuationData: { continuation: cont } }];
+    return { contents: { singleColumnBrowseResultsRenderer: { tabs: [{ tabRenderer: { content: { sectionListRenderer: sl } } }] } } };
+  };
+  var albumOf = function (a) { return SONGS.filter(function (s) { return s.artist === ARTISTS[a]; }); };
+
+  var respond = function (path, body) {
+    if (path === "/browse" && body.continuation) {
+      var tok = body.continuation;
+      if (tok === "home2") return { continuationContents: { sectionListContinuation: { contents: [
+        carousel("Albums for you", ARTISTS.map(function (n, a) { return tile(albumOf(a)[0].album, "Album • " + n, a * 4, "MPREb_album" + a, "OLAK_album" + a); }))] } } };
+      if (tok.indexOf("more:") === 0) {
+        var pl = plById(tok.slice(5));
+        return { onResponseReceivedActions: [{ appendContinuationItemsAction: { continuationItems:
+          pl.songs.slice(25).map(function (s, k) { return songRow(s, pl.id, pl.id + "_" + (25 + k)); }) } }] };
+      }
+      return {};
+    }
+    if (path === "/browse") {
+      var id = body.browseId;
+      if (id === "FEmusic_home") return single([
+        carousel("Quick picks", SONGS.slice(4, 16).map(function (s) { return songRow(s, "RDAMVM" + s.id); })),
+        carousel("Your playlists", PLAYLISTS.map(function (p) { return tile(p.title, "Playlist • " + p.songs.length + " songs", p.img, "VL" + p.id, p.id); })),
+        carousel("Artists you listen to", ARTISTS.map(function (n, a) { return tile(n, "Artist", a * 3 + 1, "UCartist" + a); }))
+      ], "home2");
+      if (id === "FEmusic_liked_playlists") return single([{ gridRenderer: { items: PLAYLISTS.map(function (p) {
+        return tile(p.title, "Playlist • You", p.img, "VL" + p.id, p.id); }) } }]);
+      if (id === "FEmusic_liked_albums") return single([{ gridRenderer: { items: ARTISTS.map(function (n, a) {
+        return tile(albumOf(a)[0].album, "Album • " + n, a * 4, "MPREb_album" + a, "OLAK_album" + a); }) } }]);
+      if (id === "FEmusic_library_corpus_track_artists") return single([{ musicShelfRenderer: { contents: ARTISTS.map(function (n, a) {
+        return { musicResponsiveListItemRenderer: { thumbnail: thumb(a * 3 + 1), flexColumns: [
+          { musicResponsiveListItemFlexColumnRenderer: { text: R(n) } },
+          { musicResponsiveListItemFlexColumnRenderer: { text: R(albumOf(a).length + " songs") } }],
+          navigationEndpoint: { browseEndpoint: { browseId: "UCartist" + a } } } }; }) } }]);
+      if (id === "FEmusic_history") return single([{ musicShelfRenderer: { title: R("Today"), contents: SONGS.slice(30, 38).map(function (s) { return songRow(s); }) } }]);
+      if (id.indexOf("VL") === 0) { var p = plById(id.slice(2)); return listPage(p.title, "Playlist • " + p.songs.length + " songs", p.img, p.songs, p.id); }
+      if (id.indexOf("MPREb_album") === 0) { var a = Number(id.slice(11)); var songs = albumOf(a); return listPage(songs[0].album, "Album • " + ARTISTS[a] + " • 2024", a * 4, songs, "OLAK_album" + a); }
+      if (id.indexOf("UCartist") === 0) {
+        var ai = Number(id.slice(8));
+        return { header: { musicImmersiveHeaderRenderer: { title: R(ARTISTS[ai]), subtitle: R("1.2M monthly audience"), thumbnail: thumb(ai * 3 + 1),
+          playButton: { buttonRenderer: { command: { watchPlaylistEndpoint: { playlistId: "RDartist" + ai } } } } } },
+          contents: single([{ musicShelfRenderer: { title: R("Top songs"), contents: albumOf(ai).slice(0, 5).map(function (s) { return songRow(s); }) } },
+            carousel("Albums", [tile(albumOf(ai)[0].album, "Album • 2024", ai * 4, "MPREb_album" + ai, "OLAK_album" + ai)])]).contents };
+      }
+      if (id.indexOf("MPLYt_") === 0) {
+        var s2 = byId(id.slice(6));
+        return { contents: { sectionListRenderer: { contents: [{ musicDescriptionShelfRenderer: {
+          description: R("First line of " + s2.title + "\nSecond line, a little longer than the first\n\nChorus: " + s2.title + " again and again\nLast line"),
+          footer: R("Source: Mock Lyrics") } }] } } };
+      }
+      return { error: { code: 404 } };
+    }
+    if (path === "/search" && body.continuation) {
+      return { continuationContents: { musicShelfContinuation: { contents: SONGS.slice(40, 60).map(function (s) { return songRow(s); }) } } };
+    }
+    if (path === "/search") {
+      var qq = String(body.query || "").toLowerCase();
+      var hits = SONGS.filter(function (s) { return (s.title + " " + s.artist + " " + s.album).toLowerCase().indexOf(qq) !== -1; });
+      var chips = ["Songs", "Albums", "Artists", "Playlists"].map(function (c) {
+        return { chipCloudChipRenderer: { text: R(c), navigationEndpoint: { searchEndpoint: { params: c.toLowerCase() } } } }; });
+      var contents;
+      if (body.params === "songs") {
+        contents = [{ musicShelfRenderer: { contents: SONGS.slice(0, 20).map(function (s) { return songRow(s); }),
+          continuations: [{ nextContinuationData: { continuation: "s2" } }] } }];
+      } else {
+        var ai2 = ARTISTS.map(function (n) { return n.toLowerCase(); }).findIndex(function (n) { return n.indexOf(qq) !== -1; });
+        contents = [];
+        if (ai2 >= 0) contents.push({ musicCardShelfRenderer: { title: { runs: [{ text: ARTISTS[ai2], navigationEndpoint: { browseEndpoint: { browseId: "UCartist" + ai2 } } }] },
+          subtitle: R("Artist"), thumbnail: thumb(ai2 * 3 + 1),
+          buttons: [{ buttonRenderer: { command: { watchPlaylistEndpoint: { playlistId: "RDartist" + ai2 } } } }] } });
+        contents.push({ musicShelfRenderer: { title: R("Songs"), contents: hits.slice(0, 6).map(function (s) { return songRow(s); }) } });
+      }
+      return { contents: { tabbedSearchResultsRenderer: { tabs: [{ tabRenderer: { content: { sectionListRenderer: {
+        header: { chipCloudRenderer: { chips: chips } }, contents: contents } } } }] } } };
+    }
+    if (path === "/player") return { playabilityStatus: { status: "OK" } };
+    if (path === "/next") return { contents: { singleColumnMusicWatchNextResultsRenderer: { tabbedRenderer: { watchNextTabbedResultsRenderer: { tabs: [
+      { tabRenderer: { endpoint: { browseEndpoint: { browseId: "MPLYt_" + body.videoId, browseEndpointContextSupportedConfigs: {
+        browseEndpointContextMusicConfig: { pageType: "MUSIC_PAGE_TYPE_TRACK_LYRICS" } } } } } }] } } } } };
+    if (path === "/music/get_queue") return { queueDatas: body.videoIds.map(function (v) { return { content: panel(byId(v), 0, false) }; }) };
+    return { error: { code: 400 } };
+  };
+
+  // ---- the player and its queue
+  var Q = { items: [], automixItems: [], autoplay: true, repeatMode: "NONE", nextQueueItemId: 1, queueContextParams: "ctx" };
+  var cur = -1, playing = false, t = 0, volume = 70, muted = false, shuffle = false, repeat = "NONE";
+  var panel = function (s, qid, selected) {
+    return { playlistPanelVideoRenderer: { title: R(s.title), shortBylineText: R(s.artist), lengthText: R(fmt(s.dur)),
+      videoId: s.id, selected: !!selected, thumbnail: { thumbnails: [{ url: IMG + s.img + ".png", width: 120, height: 120 }] },
+      navigationEndpoint: { watchEndpoint: { videoId: s.id, index: qid } } } };
+  };
+  var unwrap = function (w) { return w.playlistPanelVideoRenderer; };
+  var song = function () { return cur >= 0 && Q.items[cur] ? byId(unwrap(Q.items[cur]).videoId) : null; };
+  var select = function (i) {
+    Q.items.forEach(function (w, k) { unwrap(w).selected = k === i; });
+    cur = i; t = 0;
+    var s = song();
+    if (s && window.MediaMetadata) navigator.mediaSession.metadata = new MediaMetadata({ title: s.title, artist: s.artist, album: s.album,
+      artwork: [{ src: IMG + s.img + ".png", sizes: "120x120" }] });
+    likeEl.setAttribute("like-status", "INDIFFERENT");
+    likeEl.likeStatus = "INDIFFERENT";
+  };
+  var load = function (songs, startId) {
+    Q.items = songs.map(function (s) { return panel(s, Q.nextQueueItemId++, false); });
+    Q.automixItems = SONGS.slice(50, 55).map(function (s) { return panel(s, Q.nextQueueItemId++, false); });
+    var at = 0;
+    if (startId) songs.forEach(function (s, k) { if (s.id === startId) at = k; });
+    select(at);
+    playing = true;
+  };
+  var likeEl = document.getElementById("like-button-renderer");
+  var mp = document.getElementById("movie_player");
+  mp.getPlayerState = function () { return cur < 0 ? -1 : playing ? 1 : 2; };
+  mp.playVideo = function () { if (cur >= 0) playing = true; };
+  mp.pauseVideo = function () { playing = false; };
+  mp.getVideoData = function () { var s = song(); return s ? { video_id: s.id, title: s.title, author: s.artist } : {}; };
+  mp.getDuration = function () { var s = song(); return s ? s.dur : 0; };
+  mp.getCurrentTime = function () { return t; };
+  mp.seekTo = function (x) { t = Math.max(0, x); };
+  mp.getVolume = function () { return volume; };
+  mp.setVolume = function (v) { volume = v; };
+  mp.isMuted = function () { return muted; };
+  mp.mute = function () { muted = true; };
+  mp.unMute = function () { muted = false; };
+  mp.getPlaylistId = function () { return "PLmock"; };
+  var bar = document.querySelector("ytmusic-player-bar");
+  bar.updateVolume = function (v) { volume = v; muted = false; };
+  bar.onVolumeClick = function () { muted = !muted; };
+  bar.onRepeatButtonClick = function () { repeat = repeat === "NONE" ? "ALL" : repeat === "ALL" ? "ONE" : "NONE"; bar.repeatMode = repeat; Q.repeatMode = repeat; };
+  bar.repeatMode = "NONE";
+  bar.queue = { shuffle: function () { shuffle = !shuffle; if (shuffle) bar.setAttribute("shuffle-on", ""); else bar.removeAttribute("shuffle-on"); } };
+  var next = function () { if (cur + 1 < Q.items.length) select(cur + 1); else if (Q.automixItems.length) { Q.items.push(Q.automixItems.shift()); select(Q.items.length - 1); } };
+  document.querySelector(".next-button").addEventListener("click", next);
+  document.querySelector(".previous-button").addEventListener("click", function () { if (t > 3 || cur === 0) t = 0; else select(cur - 1); });
+  var setLike = function (k) { var c = likeEl.likeStatus; likeEl.likeStatus = c === k ? "INDIFFERENT" : k; likeEl.setAttribute("like-status", likeEl.likeStatus); };
+  document.querySelector("#button-shape-like button").addEventListener("click", function () { setLike("LIKE"); });
+  document.querySelector("#button-shape-dislike button").addEventListener("click", function () { setLike("DISLIKE"); });
+
+  var qe = document.getElementById("queue");
+  qe.queue = { store: { store: { getState: function () { return { queue: Q }; } } },
+    removeItem: function (id) { var at = Q.items.findIndex(function (w) { return String(unwrap(w).navigationEndpoint.watchEndpoint.index) === id; }); if (at >= 0) qe.dispatch({ type: "REMOVE_ITEM", payload: at }); } };
+  qe.dispatch = function (a) {
+    if (a.type === "SET_INDEX") { select(a.payload); playing = true; }
+    if (a.type === "REMOVE_ITEM") { var wasCur = a.payload === cur; Q.items.splice(a.payload, 1); if (a.payload < cur) cur--; if (wasCur) select(Math.min(cur, Q.items.length - 1)); }
+    if (a.type === "ADD_ITEMS") {
+      var items = a.payload.items.map(function (w) { var r = JSON.parse(JSON.stringify(w)); unwrap(r).navigationEndpoint.watchEndpoint.index = Q.nextQueueItemId++; unwrap(r).selected = false; return r; });
+      Array.prototype.splice.apply(Q.items, [a.payload.index, 0].concat(items));
+    }
+  };
+
+  var app = document.querySelector("ytmusic-app");
+  app.networkManager = { fetch: function (path, body) {
+    return new Promise(function (ok, fail) {
+      setTimeout(function () { var r = respond(path, body || {}); if (r && r.error) fail(r); else ok(r); }, 120);
+    });
+  } };
+  app.addEventListener("yt-navigate", function (e) {
+    var ep = e.detail.endpoint || {};
+    if (ep.watchEndpoint) {
+      var s = byId(ep.watchEndpoint.videoId);
+      var pl = plById(ep.watchEndpoint.playlistId || "");
+      if (pl) load(pl.songs, s && s.id);
+      else if (s) load([s].concat(SONGS.filter(function (x) { return x.artist === s.artist && x.id !== s.id; })), s.id);
+    } else if (ep.watchPlaylistEndpoint) {
+      var id = ep.watchPlaylistEndpoint.playlistId;
+      var p = plById(id);
+      if (p) load(p.songs);
+      else if (id.indexOf("OLAK_album") === 0) load(albumOf(Number(id.slice(10))));
+      else if (id.indexOf("RDartist") === 0) load(albumOf(Number(id.slice(8))));
+    }
+  });
+  window.ytcfg = { get: function (k) { return k === "LOGGED_IN"; } };
+
+  setInterval(function () {
+    if (!playing) return;
+    var s = song();
+    if (!s) return;
+    t += 0.25;
+    if (t >= s.dur) { if (repeat === "ONE") t = 0; else next(); }
+  }, 250);
+  // Start the way the real app does: the last queue restored, cued, not playing.
+  load(PLAYLISTS[0].songs, SONGS[2].id);
+  playing = false;
+})();
+</script>
+</body>

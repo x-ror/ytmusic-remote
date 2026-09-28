@@ -1,0 +1,10 @@
+#!/bin/bash
+# Stands in for "/opt/YouTube Music/youtube-music": Chromium on the mock page.
+# cdp-bridge passes --remote-debugging-pipe; fds 3 and 4 survive exec.
+# MOCK_HEADFUL=1 opens a real window (Wayland app_id youtube-music) in the
+# nested shell, to test how the extension keeps it out of the way.
+mode=(--headless=new)
+[[ ${MOCK_HEADFUL:-} == 1 ]] && mode=(--ozone-platform=wayland --class=youtube-music --no-first-run --no-default-browser-check)
+exec /opt/pw-browsers/chromium-1194/chrome-linux/chrome "${mode[@]}" --no-sandbox --disable-gpu \
+  --autoplay-policy=no-user-gesture-required --user-data-dir="${TMPDIR:-/tmp}/ytmr-mock-profile" \
+  "$@" "http://127.0.0.1:8765/music.youtube.com/"

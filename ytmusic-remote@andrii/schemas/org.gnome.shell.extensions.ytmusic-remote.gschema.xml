@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.ytmusic-remote" path="/org/gnome/shell/extensions/ytmusic-remote/">
+    <key name="app-path" type="s">
+      <default>''</default>
+      <summary>Path to the YouTube Music app</summary>
+      <description>Empty finds the .deb install (/opt/YouTube Music/youtube-music). Set it for an AppImage.</description>
+    </key>
+    <key name="idle-minutes" type="i">
+      <range min="0" max="240"/>
+      <default>10</default>
+      <summary>Quit the app after this many minutes paused (0 never)</summary>
+    </key>
+    <key name="show-title" type="b">
+      <default>true</default>
+      <summary>Show the song in the top bar</summary>
+    </key>
+    <key name="max-label-width" type="i">
+      <range min="60" max="600"/>
+      <default>220</default>
+      <summary>Widest the song title may be in the top bar, in pixels</summary>
+    </key>
+    <key name="panel-box" type="s">
+      <choices>
+        <choice value="left"/>
+        <choice value="center"/>
+        <choice value="right"/>
+      </choices>
+      <default>'right'</default>
+      <summary>Where in the top bar the remote sits</summary>
+    </key>
+    <key name="panel-position" type="i">
+      <default>0</default>
+      <summary>Position within that part of the top bar</summary>
+    </key>
+  </schema>
+</schemalist>
