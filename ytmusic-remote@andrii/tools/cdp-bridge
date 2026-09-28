@@ -21,8 +21,15 @@ peer uid is checked.
 Framing: the pipe separates messages with a NUL byte; the socket uses a
 newline, which JSON text never contains raw.
 
-Usage: cdp-bridge [extra app arguments...]
+Usage: cdp-bridge [--hidden] [extra app arguments...]
        cdp-bridge --sign-in [extra app arguments...]
+
+--hidden starts the app with no window at all (the extension's background
+start), so it does not show up in the dock or the window list. Without it the
+window shows as usual; and if a bridged app is already running, its window is
+brought up (a second start of the app only raises the first one and exits).
+The app decides this with its own options.appVisible setting ("Tray → Enabled,
+hide app" in its menu), which is set in its config just before it starts.
 
 --sign-in starts the app WITHOUT the debugging pipe. Google refuses to sign
 in to a browser that has remote debugging on ("This browser or app may not be
@@ -62,8 +69,9 @@ def find_app():
 
 
 APP = find_app()
-FLAGS_FILE = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
-                          "youtube-music-flags.conf")
+CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+FLAGS_FILE = os.path.join(CONFIG_HOME, "youtube-music-flags.conf")
+APP_CONFIG = os.path.join(CONFIG_HOME, "YouTube Music", "config.json")
 MAX_PENDING = 256 * 1024 * 1024  # bytes without a separator before a peer is dropped
 MAX_CLIENTS = 8
 
@@ -111,6 +119,35 @@ def app_argv(extra, pipe=True):
     return [APP] + flags + (["--remote-debugging-pipe"] if pipe else []) + list(extra)
 
 
+def set_app_visible(visible):
+    # Only while the app is not running: it reads its config once at start.
+    # Without a config yet (the very first start) the window just shows, and
+    # the extension minimizes it instead.
+    try:
+        with open(APP_CONFIG, encoding="utf-8") as f:
+            cfg = json.load(f)
+        opts = cfg.setdefault("options", {})
+        if opts.get("appVisible", True) == visible:
+            return
+        opts["appVisible"] = visible
+        tmp = APP_CONFIG + ".ytmr-tmp"
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2)
+        os.replace(tmp, APP_CONFIG)
+    except (OSError, ValueError, AttributeError) as e:
+        print("cdp-bridge: could not update " + APP_CONFIG + ": " + str(e), file=sys.stderr)
+
+
+def raise_running(extra):
+    # The app is single-instance: a second start hands over to the first one,
+    # which shows and focuses its window, and then exits.
+    try:
+        os.execve(APP, [APP] + list(extra), dict(os.environ, ELECTRON_IS_DEV="0"))
+    except OSError as e:
+        die("cannot start " + APP + ": " + str(e))
+
+
 def sign_in(extra):
     # Quit a bridged copy first: a second start would only focus it, and the
     # sign-in would still happen with the pipe on.
@@ -132,6 +169,7 @@ def sign_in(extra):
             pass
         finally:
             s.close()
+    set_app_visible(True)
     argv = app_argv(extra, pipe=False)
     try:
         os.execve(argv[0], argv, dict(os.environ, ELECTRON_IS_DEV="0"))
@@ -159,6 +197,10 @@ def peer_uid(conn):
 def main():
     if sys.argv[1:2] == ["--sign-in"]:
         sign_in(sys.argv[2:])
+    extra = sys.argv[1:]
+    hidden = extra[:1] == ["--hidden"]
+    if hidden:
+        extra = extra[1:]
     d = private_dir()
     path = os.path.join(d, "cdp.sock")
 
@@ -168,13 +210,16 @@ def main():
         try:
             probe.connect(path)
             probe.close()
+            if not hidden:
+                raise_running(extra)
             return 0
         except OSError:
             os.unlink(path)
 
     to_app_r, to_app_w = os.pipe()        # app reads commands on fd 3
     from_app_r, from_app_w = os.pipe()    # app writes answers on fd 4
-    argv = app_argv(sys.argv[1:])
+    set_app_visible(not hidden)
+    argv = app_argv(extra)
     env = dict(os.environ, ELECTRON_IS_DEV="0")
 
     pid = os.fork()

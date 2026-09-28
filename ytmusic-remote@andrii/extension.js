@@ -30,10 +30,23 @@ class Indicator extends PanelMenu.Button {
 
         const box = new St.BoxLayout({style_class: 'panel-status-menu-box ytmr-indicator'});
         this._icon = new St.Icon({style_class: 'system-status-icon', gicon: ext.view.icon('ytmr-logo-symbolic')});
-        this._label = new St.Label({style_class: 'ytmr-indicator-label', y_align: Clutter.ActorAlign.CENTER});
+        // The title sits in a clipped window no wider than the setting; a
+        // longer one scrolls through it while the song plays.
+        this._clip = new St.Widget({style_class: 'ytmr-indicator-label', clip_to_allocation: true,
+            y_align: Clutter.ActorAlign.CENTER});
+        this._label = new St.Label();
         this._label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        this._clip.add_child(this._label);
+        this._marquee = '';
+        // Measured again once in the panel, with the panel's font.
+        this._label.connect('notify::mapped', () => {
+            if (this._label.mapped) {
+                this._marquee = '';
+                this._sync();
+            }
+        });
         box.add_child(this._icon);
-        box.add_child(this._label);
+        box.add_child(this._clip);
         this.add_child(box);
 
         this.menu.actor.add_style_class_name('ytmr-menu');
@@ -54,13 +67,64 @@ class Indicator extends PanelMenu.Button {
     _sync() {
         const song = this._app.song;
         const show = this._settings.get_boolean('show-title') && !!song?.title;
-        this._label.visible = show;
-        if (show) {
-            this._label.text = song.artist ? `${song.title} — ${song.artist}` : song.title;
-            this._label.style = `max-width: ${this._settings.get_int('max-label-width')}px;`;
-        }
+        this._clip.visible = show;
+        if (show)
+            this._setTitle(song.artist ? `${song.title} — ${song.artist}` : song.title);
+        else
+            this._stopMarquee();
         this.opacity = this._app.playing || !song ? 255 : 170;
         this.accessible_name = song?.title ? `YouTube Music: ${song.title}` : 'YouTube Music';
+    }
+
+    // Lay the title out again only when something that shows changes: the
+    // app pushes state far more often than that.
+    _setTitle(text) {
+        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        const max = this._settings.get_int('max-label-width') * scale;
+        const scroll = this._settings.get_boolean('scroll-title') && this._app.playing;
+        const key = `${text}\n${max}\n${scroll}`;
+        if (key === this._marquee)
+            return;
+        this._stopMarquee();
+        this._marquee = key;
+        this._label.text = text;
+        this._label.width = -1;
+        const [, full] = this._label.get_preferred_width(-1);
+        this._clip.width = Math.min(full, max);
+        if (full <= max || !scroll) {
+            // Fits, or stands still: a long one ends in "…".
+            this._label.width = Math.min(full, max);
+            return;
+        }
+        // Two copies with a gap, scrolled by one copy and put back: the
+        // second copy lands exactly where the first began, so it loops.
+        const gap = '        ';
+        this._label.text = text + gap;
+        const [, step] = this._label.get_preferred_width(-1);
+        this._label.text = text + gap + text;
+        this._scroll(step, scale);
+    }
+
+    _scroll(step, scale) {
+        const gen = this._marqueeGen;
+        this._label.translation_x = 0;
+        this._label.ease({
+            translation_x: -step,
+            delay: 2000,
+            duration: Math.round(step / (30 * scale) * 1000),   // 30 px a second
+            mode: Clutter.AnimationMode.LINEAR,
+            onStopped: finished => {
+                if (finished && gen === this._marqueeGen)
+                    this._scroll(step, scale);
+            },
+        });
+    }
+
+    _stopMarquee() {
+        this._marquee = '';
+        this._marqueeGen = (this._marqueeGen ?? 0) + 1;
+        this._label.remove_all_transitions();
+        this._label.translation_x = 0;
     }
 
     // Middle click plays or pauses; scrolling changes the volume.
@@ -87,6 +151,7 @@ class Indicator extends PanelMenu.Button {
     }
 
     _onDestroy() {
+        this._stopMarquee();
         this._app.disconnect(this._changedId);
         this._settings.disconnect(this._settingsId);
         super._onDestroy();
